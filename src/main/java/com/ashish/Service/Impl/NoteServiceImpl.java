@@ -15,6 +15,9 @@ import org.apache.commons.io.FilenameUtils;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 import org.springframework.util.StreamUtils;
@@ -28,6 +31,7 @@ import com.ashish.Repository.fileDetailsrepo;
 import com.ashish.Service.NoteService;
 import com.ashish.dto.NoteDto;
 import com.ashish.dto.NoteDto.CategoryDto;
+import com.ashish.dto.NoteResponse;
 import com.ashish.exceptionHandler.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -145,6 +149,27 @@ public class NoteServiceImpl implements NoteService {
 	public byte[] downloadfile(FileDetails fileDetails) throws Exception {
 	InputStream io=new FileInputStream(fileDetails.getPath());
 		return StreamUtils.copyToByteArray(io);
+	}
+
+	@Override
+	public NoteResponse getAllNotesByUser(Integer userId, Integer pageNo, Integer pageSize) {
+		Pageable pageable = PageRequest.of(pageNo, pageSize);
+		
+		Page<Notes> pagenotes=noterepo.findByCreatedBy(userId,pageable);
+		
+		List<NoteDto> notesDto=pagenotes.get().map(n -> mapper.map(n,NoteDto.class)).toList();
+		
+		NoteResponse notes=NoteResponse.builder()
+		.notes(notesDto)
+		.pageNo(pagenotes.getNumber())
+		.pageSize(pagenotes.getSize())
+		.totalPages(pagenotes.getTotalPages())
+		.totalElements(pagenotes.getTotalElements())
+		.isFirst(pagenotes.isFirst())
+		.isLast(pagenotes.isLast())
+		.build();
+		
+		return notes;
 	}
 
 }
