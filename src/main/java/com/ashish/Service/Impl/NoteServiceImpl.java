@@ -31,7 +31,11 @@ import com.ashish.Repository.fileDetailsrepo;
 import com.ashish.Service.NoteService;
 import com.ashish.dto.NoteDto;
 import com.ashish.dto.NoteDto.CategoryDto;
+
+import com.ashish.dto.NoteDto.fileDto;
+
 import com.ashish.dto.NoteResponse;
+
 import com.ashish.exceptionHandler.ResourceNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -58,6 +62,10 @@ public class NoteServiceImpl implements NoteService {
 		
 	ObjectMapper ob = new ObjectMapper();
 	NoteDto notedto = ob.readValue(notes, NoteDto.class);
+	
+	if(!ObjectUtils.isEmpty(notedto.getId())) {
+		updateNotes(notedto,file);
+	}
 		
 		checkCategoryExist(notedto.getCategory());
 		
@@ -67,7 +75,10 @@ public class NoteServiceImpl implements NoteService {
 		if(!ObjectUtils.isEmpty(filedtls)) {
 			notemap.setFileDetails(filedtls);
 		}else {
-			notemap.setFileDetails(null);
+			if(ObjectUtils.isEmpty(notedto.getId())) {
+				notemap.setFileDetails(null);
+			}
+			
 		}
 		
 		Notes save = noterepo.save(notemap);
@@ -75,6 +86,16 @@ public class NoteServiceImpl implements NoteService {
 			return true;
 		}
 		return false;
+	}
+
+	private void updateNotes(NoteDto notedto, MultipartFile file) throws Exception {
+		Notes existnote = noterepo.findById(notedto.getId())
+				.orElseThrow(()-> new ResourceNotFoundException("Invalid notes id"));
+		
+		if(ObjectUtils.isEmpty(file)) {
+			notedto.setFileDetails(mapper.map(existnote.getFileDetails(), fileDto.class));
+		}
+		
 	}
 
 	private FileDetails saveFiledetails(MultipartFile file) throws IOException {
